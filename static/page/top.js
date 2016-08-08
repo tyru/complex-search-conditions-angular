@@ -32,8 +32,8 @@
 
       var $ctrl = this
       $ctrl.conditions = makeJsonInputText(
-        ["and",
-          ["or",
+        ["AND",
+          ["OR",
             {id: 1, value: "A"},
             {id: 2, value: "B"},
             {id: 3, value: "C"}
@@ -117,7 +117,7 @@
                 throw new Error('Error: \'conditions\' is not Array ' +
                                 '(' + conditions + ')')
               }
-              if (conditions[0] === 'or' || conditions[0] === 'and') {
+              if (conditions[0] === 'OR' || conditions[0] === 'AND') {
                 // "OR" group element:
                 //   <div class='condition condition-or'>
                 //     <div class='condition-expr'>{expr}</div>
@@ -134,11 +134,11 @@
                 //     ...
                 //   </div>
 
-                var $div = conditionElement(conditions[0])
+                var $div = conditionElement(conditions[0].toLowerCase())
                 var initialValue = [exprElement(conditions[1])]
                 conditions.slice(2).reduce(function (list, expr) {
                   return list.concat(
-                    operatorElement(conditions[0].toUpperCase()),
+                    operatorElement(conditions[0]),
                     exprElement(expr)
                   )
                 }, initialValue).map(function ($innerDiv) {
