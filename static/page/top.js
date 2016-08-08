@@ -84,13 +84,12 @@
               if (angular.isArray(expr)) {
                 $expr.append(makeTreeHTML(expr))
               } else if (angular.isObject(expr) && angular.isNumber(expr.id)) {
-                // you see it...
                 var $el = angular.element(
-  `<div class='input-group'>
-    <input type='text' value='${expr.value}' class='form-control'
-    data-expr-input-id='${expr.id}' id='expr-input-${expr.id}' aria-describedby='expr-addon-${expr.id}'>
-    <span class='input-group-addon' id='expr-addon-${expr.id}'><i class='glyphicon glyphicon-remove'></i></span>
-  </div>`
+                  `<div class='input-group'>
+                    <input type='text' value='${expr.value}' class='form-control'
+                    data-expr-input-id='${expr.id}' id='expr-input-${expr.id}' aria-describedby='expr-addon-${expr.id}'>
+                    <span class='input-group-addon' id='expr-addon-${expr.id}'><i class='glyphicon glyphicon-remove'></i></span>
+                  </div>`
                 )
                 $expr.append($el)
               } else {
