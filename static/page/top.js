@@ -11,8 +11,8 @@
     })
 
     .controller('topCtrl', [
-        '$scope', 'searchService',
-    function topCtrl($scope, searchService) {
+        'searchService',
+    function topCtrl(searchService) {
       // ng-model-options='{getterSetter: true}'
       function makeJsonInputText(initialValue) {
         var inputFn; inputFn = function (value) {
@@ -71,8 +71,8 @@
     }])
 
     .directive('cscConditions', [
-      '$window',
-      function cscConditions($window) {
+      '$compile', '$window',
+      function cscConditions($compile, $window) {
         return {
           restrict: 'A',
           scope: {},
@@ -82,6 +82,39 @@
           controllerAs: '$ctrl',
           controller: function cscConditionsCtrl() {
             var $ctrl = this
+
+            $ctrl.removeById = function removeById(id) {
+              var found = false
+              $ctrl.traverseById(
+                $ctrl.cscConditions.json, id,
+                function foundFn(expr, index, array) {
+                  array.splice(index, 1)
+                  found = true
+                }
+              )
+              if (!found) {
+                $window.alert('[Internal Error] Condition[id=' + id + '] was not found')
+              }
+            }
+
+            // (user inputs) -> $ctrl.cscConditions.json
+            $ctrl.updateExprByEvent = function updateExprByEvent($event) {
+              var $input = angular.element($event.currentTarget)
+              var found = false
+              var id = +$input.attr('data-expr-input-id')
+              $ctrl.traverseById(
+                $ctrl.cscConditions.json, id,
+                function foundFn(expr) {
+                  expr.value = $input.val()
+                  found = true
+                }
+              )
+              if (!found) {
+                $window.alert('[Internal Error] Condition[id=' + id + '] was not found')
+              }
+            }
+
+            // Change condition in '$ctrl.cscConditions.json' specified by id.
             $ctrl.traverseById = function traverseById(expr, id, foundFn) {
               function traverseByIdLocal(expr, index, array) {
                 if (index === 0) {
@@ -103,7 +136,7 @@
               expr.map(traverseByIdLocal)
             }
           },
-          link: function (scope, element, attr, ctrl) {
+          link: function (scope, element, attr, $ctrl) {
             function exprElement(expr) {
               var $expr = angular.element('<div class="condition-expr col-sm-12"></div>')
               if (angular.isArray(expr)) {
@@ -111,10 +144,13 @@
               } else if (angular.isObject(expr) && angular.isNumber(expr.id)) {
                 var $el = angular.element(
                   `<div class='input-group'>
-                    <input type='text' value='${expr.value}' class='form-control' id='expr-input-${expr.id}'
-                           data-expr-input-id='${expr.id}' aria-describedby='expr-addon-${expr.id}'>
+                    <input type='text' value='${expr.value}' class='form-control expr-input' id='expr-input-${expr.id}'
+                           aria-describedby='expr-remove-${expr.id}'
+                           data-expr-input-id='${expr.id}'
+                           ng-blur='$ctrl.updateExprByEvent($event)'>
                     <span class='input-group-btn'>
-                      <button class='btn btn-secondary' id='expr-addon-${expr.id}' data-expr-input-id='${expr.id}'>
+                      <button class='btn btn-secondary' id='expr-remove-${expr.id}'
+                              ng-click='$ctrl.removeById(${expr.id})'>
                         <i class='glyphicon glyphicon-remove'></i>
                       </button>
                     </span>
@@ -178,57 +214,12 @@
             }
 
             scope.$watch(function watchIt() {
-              return ctrl.cscConditions.json
+              return $ctrl.cscConditions.json
             }, function doIt() {
-              // (user inputs) -> ctrl.cscConditions.json
-              element.on('change', function (event) {
-                var $input = angular.element(event.target)
-                if (!/^expr-input-/.test($input.attr('id'))) {
-                  return
-                }
-                var found = false
-                var id = +$input.attr('data-expr-input-id')
-                scope.$apply(function () {
-                  // Change condition in 'ctrl.cscConditions.json' specified by id.
-                  ctrl.traverseById(
-                    ctrl.cscConditions.json, id,
-                    function foundFn(expr) {
-                      expr.value = $input.val()
-                      found = true
-                    }
-                  )
-                })
-                if (!found) {
-                  $window.alert('[Internal Error] Condition[id=' + id + '] was not found')
-                }
-              })
-
-              // Remove specified element on button click.
-              element.on('click', function (event) {
-                var $input = angular.element(event.target)
-                if (!/^expr-addon-/.test($input.attr('id'))) {
-                  return
-                }
-                var found = false
-                var id = +$input.attr('data-expr-input-id')
-                scope.$apply(function () {
-                  // Change condition in 'ctrl.cscConditions.json' specified by id.
-                  ctrl.traverseById(
-                    ctrl.cscConditions.json, id,
-                    function foundFn(expr, index, array) {
-                      array.splice(index, 1)
-                      found = true
-                    }
-                  )
-                })
-                if (!found) {
-                  $window.alert('[Internal Error] Condition[id=' + id + '] was not found')
-                }
-              })
-
-              // ctrl.cscConditions.json ->  (user inputs)
-              var tree = makeTreeHTML(ctrl.cscConditions.json)
+              // $ctrl.cscConditions.json ->  <input> tags
+              var tree = makeTreeHTML($ctrl.cscConditions.json)
               element.html(rootElement().append(tree).prop('outerHTML'))
+              $compile(element.contents())(scope);
             }, true)
           }
         }
