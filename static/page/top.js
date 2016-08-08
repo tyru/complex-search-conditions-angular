@@ -21,8 +21,10 @@
           } else {
             try {
               inputFn.json = angular.fromJson(value)
+              inputFn.error = null
             } catch (e) {
               console.error(e)
+              inputFn.error = e
             }
           }
         }

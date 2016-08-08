@@ -13,8 +13,8 @@
       </div>
     </div>
     <div class='col-sm-6'>
-      <div class="form-group">
-        <label for="conditions">Conditions:</label>
+      <div class="form-group" ng-class='$ctrl.conditions.error ? "has-error" : ""'>
+        <label class="control-label" for="conditions">Conditions:</label>
         <textarea
             class='form-control' rows='5' id='conditions'
             ng-model='$ctrl.conditions'
