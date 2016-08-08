@@ -75,10 +75,35 @@
       function cscConditions($window) {
         return {
           restrict: 'A',
-          scope: {
+          scope: {},
+          bindToController: {
             cscConditions: '='
           },
-          link: function (scope, element, attr) {
+          controllerAs: '$ctrl',
+          controller: function cscConditionsCtrl() {
+            var $ctrl = this
+            $ctrl.traverseById = function traverseById(expr, id, foundFn) {
+              function traverseByIdLocal(expr, index, array) {
+                if (index === 0) {
+                  return    // Skip sexp operator
+                } else if (angular.isObject(expr) && angular.isNumber(expr.id)) {
+                  if (expr.id === id) {
+                    foundFn(expr, index, array)
+                  }
+                } else if (angular.isArray(expr)) {
+                  expr.map(traverseByIdLocal)
+                } else {
+                  throw new Error('Error: invalid expression! (' + conditions + ')')
+                }
+              }
+
+              if (!angular.isArray(expr)) {
+                throw new Error('Error: invalid expression! (' + conditions + ')')
+              }
+              expr.map(traverseByIdLocal)
+            }
+          },
+          link: function (scope, element, attr, ctrl) {
             function exprElement(expr) {
               var $expr = angular.element('<div class="condition-expr col-sm-12"></div>')
               if (angular.isArray(expr)) {
@@ -86,9 +111,13 @@
               } else if (angular.isObject(expr) && angular.isNumber(expr.id)) {
                 var $el = angular.element(
                   `<div class='input-group'>
-                    <input type='text' value='${expr.value}' class='form-control'
-                    data-expr-input-id='${expr.id}' id='expr-input-${expr.id}' aria-describedby='expr-addon-${expr.id}'>
-                    <span class='input-group-addon' id='expr-addon-${expr.id}'><i class='glyphicon glyphicon-remove'></i></span>
+                    <input type='text' value='${expr.value}' class='form-control' id='expr-input-${expr.id}'
+                           data-expr-input-id='${expr.id}' aria-describedby='expr-addon-${expr.id}'>
+                    <span class='input-group-btn'>
+                      <button class='btn btn-secondary' id='expr-addon-${expr.id}' data-expr-input-id='${expr.id}'>
+                        <i class='glyphicon glyphicon-remove'></i>
+                      </button>
+                    </span>
                   </div>`
                 )
                 $expr.append($el)
@@ -147,48 +176,58 @@
               }
               throw new Error('Error: invalid expression! (' + conditions + ')')
             }
-            function traverseById(expr, id, foundFn) {
-              function traverseByIdLocal(expr) {
-                if (angular.isObject(expr) && angular.isNumber(expr.id)) {
-                  if (expr.id === id) {
-                    foundFn(expr)
-                  }
-                } else if (angular.isArray(expr)) {
-                  expr.slice(1).map(traverseByIdLocal)
-                } else {
-                  throw new Error('Error: invalid expression! (' + conditions + ')')
-                }
-              }
-              traverseByIdLocal(expr)
-            }
 
             scope.$watch(function watchIt() {
-              return scope.cscConditions.json
+              return ctrl.cscConditions.json
             }, function doIt() {
-              // (user inputs) -> scope.cscConditions.json
-              element.bind('change', function (event) {
+              // (user inputs) -> ctrl.cscConditions.json
+              element.on('change', function (event) {
                 var $input = angular.element(event.target)
                 if (!/^expr-input-/.test($input.attr('id'))) {
                   return
                 }
+                var found = false
+                var id = +$input.attr('data-expr-input-id')
                 scope.$apply(function () {
-                  // Change condition in 'scope.cscConditions.json' specified by id.
-                  var found = false
-                  var id = +$input.attr('data-expr-input-id')
-                  traverseById(
-                    scope.cscConditions.json, id,
-                    function found(expr) {
+                  // Change condition in 'ctrl.cscConditions.json' specified by id.
+                  ctrl.traverseById(
+                    ctrl.cscConditions.json, id,
+                    function foundFn(expr) {
                       expr.value = $input.val()
                       found = true
                     }
                   )
-                  if (!found) {
-                    $window.alert('[Internal Error] Condition[id=' + id + '] was not found')
-                  }
                 })
+                if (!found) {
+                  $window.alert('[Internal Error] Condition[id=' + id + '] was not found')
+                }
               })
-              // scope.cscConditions.json ->  (user inputs)
-              var tree = makeTreeHTML(scope.cscConditions.json)
+
+              // Remove specified element on button click.
+              element.on('click', function (event) {
+                var $input = angular.element(event.target)
+                if (!/^expr-addon-/.test($input.attr('id'))) {
+                  return
+                }
+                var found = false
+                var id = +$input.attr('data-expr-input-id')
+                scope.$apply(function () {
+                  // Change condition in 'ctrl.cscConditions.json' specified by id.
+                  ctrl.traverseById(
+                    ctrl.cscConditions.json, id,
+                    function foundFn(expr, index, array) {
+                      array.splice(index, 1)
+                      found = true
+                    }
+                  )
+                })
+                if (!found) {
+                  $window.alert('[Internal Error] Condition[id=' + id + '] was not found')
+                }
+              })
+
+              // ctrl.cscConditions.json ->  (user inputs)
+              var tree = makeTreeHTML(ctrl.cscConditions.json)
               element.html(rootElement().append(tree).prop('outerHTML'))
             }, true)
           }
