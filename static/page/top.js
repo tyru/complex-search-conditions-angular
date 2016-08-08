@@ -31,17 +31,22 @@
       }
 
       var $ctrl = this
-      $ctrl.conditions = makeJsonInputText(
-        ["AND",
-          ["OR",
-            {id: 1, value: "A"},
-            {id: 2, value: "B"},
-            {id: 3, value: "C"}
-          ],
-          {id: 4, value: "D"}
-        ]
-      )
+      $ctrl.conditions = undefined // see $ctrl.setDefault()
       $ctrl.alerts = []
+
+      $ctrl.setDefault = function setDefault() {
+        $ctrl.conditions = makeJsonInputText(
+          ["AND",
+            ["OR",
+              {id: 1, value: "A"},
+              {id: 2, value: "B"},
+              {id: 3, value: "C"}
+            ],
+            {id: 4, value: "D"}
+          ]
+        )
+      }
+      $ctrl.setDefault()
 
       // Search
       // $ctrl.search = function search(query) {
