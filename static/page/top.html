@@ -13,9 +13,9 @@
       </div>
     </div>
     <div class='col-sm-6'>
-      <div class="form-group" ng-class='$ctrl.conditions.error ? "has-error" : ""'>
+      <div class="form-group">
         <label class="control-label" for="conditions">Conditions:</label>
-        <textarea
+        <textarea readonly
             class='form-control' rows='5' id='conditions'
             ng-model='$ctrl.conditions'
             ng-model-options='{getterSetter: true}'></textarea>
