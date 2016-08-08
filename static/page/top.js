@@ -31,7 +31,16 @@
       }
 
       var $ctrl = this
-      $ctrl.conditions = makeJsonInputText(["and", ["or", "A", "B", "C"], "D"])
+      $ctrl.conditions = makeJsonInputText(
+        ["and",
+          ["or",
+            {id: 1, value: "A"},
+            {id: 2, value: "B"},
+            {id: 3, value: "C"}
+          ],
+          {id: 4, value: "D"}
+        ]
+      )
       $ctrl.alerts = []
 
       // Search
@@ -62,81 +71,129 @@
     }])
 
     .directive('cscConditions', [
-        '$interpolate', '$compile', '$rootScope',
-    function cscConditions($interpolate, $compile, $rootScope) {
-      return {
-        restrict: 'A',
-        scope: {
-          cscConditions: '='
-        },
-        link: function (scope, element, attr) {
-          function exprElement(expr) {
-            var $expr = angular.element('<div class="condition-expr"></div>')
-            if (angular.isArray(expr)) {
-              $expr.append(makeTreeHTML(expr))
-            } else {
-              $expr.text(expr)
-            }
-            return $expr
-          }
-          function operatorElement(op) {
-            return angular.element('<div class="condition-operator"></div>')
-                          .text(op)
-          }
-          function conditionElement(op) {
-            return angular.element(
-              '<div class="condition condition-' + op + '"></div>'
-            )
-          }
-          function rootElement() {
-            return angular.element(
-              '<div class="csc-conditions-root"></div>'
-            )
-          }
-          function makeTreeHTML(conditions) {
-            if (!angular.isArray(conditions)) {
-              throw new Error('Error: \'conditions\' is not Array ' +
-                              '(' + conditions + ')')
-            }
-            if (conditions[0] === 'or' || conditions[0] === 'and') {
-              // "OR" group element:
-              //   <div class='condition condition-or'>
-              //     <div class='condition-expr'>{expr}</div>
-              //     <div class='condition-operator'>OR</div>
-              //     <div class='condition-expr'>{expr}</div>
-              //     ...
-              //   </div>
-              //
-              // "AND" group element:
-              //   <div class='condition condition-and'>
-              //     <div class='condition-expr'>{expr}</div>
-              //     <div class='condition-operator'>AND</div>
-              //     <div class='condition-expr'>{expr}</div>
-              //     ...
-              //   </div>
-
-              var $div = conditionElement(conditions[0])
-              var initialValue = [exprElement(conditions[1])]
-              conditions.slice(2).reduce(function (list, expr) {
-                return list.concat(
-                  operatorElement(conditions[0].toUpperCase()),
-                  exprElement(expr)
+      '$window',
+      function cscConditions($window) {
+        return {
+          restrict: 'A',
+          scope: {
+            cscConditions: '='
+          },
+          link: function (scope, element, attr) {
+            function exprElement(expr) {
+              var $expr = angular.element('<div class="condition-expr col-sm-12"></div>')
+              if (angular.isArray(expr)) {
+                $expr.append(makeTreeHTML(expr))
+              } else if (angular.isObject(expr) && angular.isNumber(expr.id)) {
+                // you see it...
+                var $el = angular.element(
+  `<div class='input-group'>
+    <input type='text' value='${expr.value}' class='form-control'
+    data-expr-input-id='${expr.id}' id='expr-input-${expr.id}' aria-describedby='expr-addon-${expr.id}'>
+    <span class='input-group-addon' id='expr-addon-${expr.id}'><i class='glyphicon glyphicon-remove'></i></span>
+  </div>`
                 )
-              }, initialValue).map(function ($innerDiv) {
-                $div.append($innerDiv)
-              })
-              return $div
+                $expr.append($el)
+              } else {
+                throw new Error('invalid expression! (' + angular.toJson(expr) + ')')
+              }
+              return $expr
             }
-            throw new Error('Error: invalid expression! (' + conditions + ')')
-          }
+            function operatorElement(op) {
+              return angular.element('<div class="col-sm-12 text-center condition-operator"></div>')
+                            .text(op)
+            }
+            function conditionElement(op) {
+              return angular.element(
+                '<div class="row condition condition-' + op + '"></div>'
+              )
+            }
+            function rootElement() {
+              return angular.element(
+                '<div class="csc-conditions-root"></div>'
+              )
+            }
+            function makeTreeHTML(conditions) {
+              if (!angular.isArray(conditions)) {
+                throw new Error('Error: \'conditions\' is not Array ' +
+                                '(' + conditions + ')')
+              }
+              if (conditions[0] === 'or' || conditions[0] === 'and') {
+                // "OR" group element:
+                //   <div class='condition condition-or'>
+                //     <div class='condition-expr'>{expr}</div>
+                //     <div class='condition-operator'>OR</div>
+                //     <div class='condition-expr'>{expr}</div>
+                //     ...
+                //   </div>
+                //
+                // "AND" group element:
+                //   <div class='condition condition-and'>
+                //     <div class='condition-expr'>{expr}</div>
+                //     <div class='condition-operator'>AND</div>
+                //     <div class='condition-expr'>{expr}</div>
+                //     ...
+                //   </div>
 
-          scope.$watch(function watchIt() {
-            return scope.cscConditions.json
-          }, function doIt() {
-            var tree = makeTreeHTML(scope.cscConditions.json)
-            element.html(rootElement().append(tree).prop('outerHTML'))
-          }, true)
+                var $div = conditionElement(conditions[0])
+                var initialValue = [exprElement(conditions[1])]
+                conditions.slice(2).reduce(function (list, expr) {
+                  return list.concat(
+                    operatorElement(conditions[0].toUpperCase()),
+                    exprElement(expr)
+                  )
+                }, initialValue).map(function ($innerDiv) {
+                  $div.append($innerDiv)
+                })
+                return $div
+              }
+              throw new Error('Error: invalid expression! (' + conditions + ')')
+            }
+            function traverseById(expr, id, foundFn) {
+              function traverseByIdLocal(expr) {
+                if (angular.isObject(expr) && angular.isNumber(expr.id)) {
+                  if (expr.id === id) {
+                    foundFn(expr)
+                  }
+                } else if (angular.isArray(expr)) {
+                  expr.slice(1).map(traverseByIdLocal)
+                } else {
+                  throw new Error('Error: invalid expression! (' + conditions + ')')
+                }
+              }
+              traverseByIdLocal(expr)
+            }
+
+            scope.$watch(function watchIt() {
+              return scope.cscConditions.json
+            }, function doIt() {
+              // (user inputs) -> scope.cscConditions.json
+              element.bind('change', function (event) {
+                var $input = angular.element(event.target)
+                if (!/^expr-input-/.test($input.attr('id'))) {
+                  return
+                }
+                scope.$apply(function () {
+                  // Change condition in 'scope.cscConditions.json' specified by id.
+                  var found = false
+                  var id = +$input.attr('data-expr-input-id')
+                  traverseById(
+                    scope.cscConditions.json, id,
+                    function found(expr) {
+                      expr.value = $input.val()
+                      found = true
+                    }
+                  )
+                  if (!found) {
+                    $window.alert('[Internal Error] Condition[id=' + id + '] was not found')
+                  }
+                })
+              })
+              // scope.cscConditions.json ->  (user inputs)
+              var tree = makeTreeHTML(scope.cscConditions.json)
+              element.html(rootElement().append(tree).prop('outerHTML'))
+            }, true)
+          }
         }
-      }
-    }])
+      }]
+    )
 })()

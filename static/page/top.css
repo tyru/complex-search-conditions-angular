@@ -13,5 +13,11 @@
 }
 
 .top-component .csc-conditions-root .condition-operator {
-  padding-left: 30px;
+  padding: 5px 0;
+}
+
+.top-component .csc-conditions-root .condition-expr:not(:last-child) > .condition-expr-value {
+  border-bottom: 1px #ccc solid;
+  padding-bottom: 15px;
+  margin-bottom: 10px;
 }
