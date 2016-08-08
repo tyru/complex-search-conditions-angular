@@ -1,0 +1,22 @@
+<link rel="stylesheet" href="/page/top.css" type="text/css" media="screen" charset="utf-8">
+
+<div class='top-component'>
+  <h1 class='title'>Complex Search Conditions</h1>
+
+  <div uib-alert ng-repeat="alert in $ctrl.alerts" ng-class="'alert-' + (alert.type || 'warning')" close="$ctrl.closeAlert($index)">{{alert.msg}}</div>
+
+  <div class='row'>
+    <div class='col-sm-6'>
+      <div csc-conditions='$ctrl.conditions'></div>
+    </div>
+    <div class='col-sm-6'>
+      <div class="form-group">
+        <label for="conditions">Conditions:</label>
+        <textarea
+            class='form-control' rows='5' id='conditions'
+            ng-model='$ctrl.conditions'
+            ng-model-options='{getterSetter: true}'></textarea>
+      </div>
+    </div>
+  </div>
+</div>

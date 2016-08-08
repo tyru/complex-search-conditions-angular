@@ -1,0 +1,17 @@
+.top-component {
+  padding: 20px;
+}
+
+.top-component .title {
+  margin-bottom: 20px;
+}
+
+.top-component .csc-conditions-root .condition {
+  padding: 6px;
+  padding-left: 12px;
+  border: 1px black solid;
+}
+
+.top-component .csc-conditions-root .condition-operator {
+  padding-left: 30px;
+}
