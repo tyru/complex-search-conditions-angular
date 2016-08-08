@@ -87,8 +87,19 @@
               var found = false
               $ctrl.traverseById(
                 $ctrl.cscConditions.json, id,
-                function foundFn(expr, index, array) {
-                  array.splice(index, 1)
+                function foundFn(expr, index, array, parentArray, parentIndex) {
+                  if (array.length <= 2) {
+                    if (angular.isUndefined(parentArray)) {
+                      // Remove the last element of the root
+                      $ctrl.cscConditions.json = []
+                    } else {
+                      // Remove the last element of current node
+                      parentArray.splice(parentIndex, 1)
+                    }
+                  } else {
+                    // Others
+                    array.splice(index, 1)
+                  }
                   found = true
                 }
               )
@@ -116,14 +127,19 @@
 
             // Change condition in '$ctrl.cscConditions.json' specified by id.
             $ctrl.traverseById = function traverseById(expr, id, foundFn) {
+              var parentArray = undefined
+              var parentIndex = -1
+
               function traverseByIdLocal(expr, index, array) {
                 if (index === 0) {
                   return    // Skip sexp operator
                 } else if (angular.isObject(expr) && angular.isNumber(expr.id)) {
                   if (expr.id === id) {
-                    foundFn(expr, index, array)
+                    foundFn(expr, index, array, parentArray, parentIndex)
                   }
                 } else if (angular.isArray(expr)) {
+                  parentArray = array
+                  parentIndex = index
                   expr.map(traverseByIdLocal)
                 } else {
                   throw new Error('Error: invalid expression! (' + conditions + ')')
@@ -140,6 +156,9 @@
             function exprElement(expr) {
               var $expr = angular.element('<div class="condition-expr col-sm-12"></div>')
               if (angular.isArray(expr)) {
+                if (expr.length === 0) {
+                  throw new Error('exprElement() takes only non-empty sexp!')
+                }
                 $expr.append(makeTreeHTML(expr))
               } else if (angular.isObject(expr) && angular.isNumber(expr.id)) {
                 var $el = angular.element(
@@ -181,6 +200,9 @@
                 throw new Error('Error: \'conditions\' is not Array ' +
                                 '(' + conditions + ')')
               }
+              if (conditions.length === 0) {
+                throw new Error('makeTreeHTML() takes only non-empty sexp!')
+              }
               if (conditions[0] === 'OR' || conditions[0] === 'AND') {
                 // "OR" group element:
                 //   <div class='condition condition-or'>
@@ -217,9 +239,14 @@
               return $ctrl.cscConditions.json
             }, function doIt() {
               // $ctrl.cscConditions.json ->  <input> tags
-              var tree = makeTreeHTML($ctrl.cscConditions.json)
-              element.html(rootElement().append(tree).prop('outerHTML'))
-              $compile(element.contents())(scope);
+              if (angular.isArray($ctrl.cscConditions.json) &&
+                  $ctrl.cscConditions.json.length > 0) {
+                var tree = makeTreeHTML($ctrl.cscConditions.json)
+                element.html(rootElement().append(tree).prop('outerHTML'))
+                $compile(element.contents())(scope);
+              } else {
+                element.empty()
+              }
             }, true)
           }
         }

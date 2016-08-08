@@ -6,6 +6,12 @@
   margin-bottom: 20px;
 }
 
+.top-component .no-data {
+  font-size: xx-large;
+  font-weight: bold;
+  color: #ccc;
+}
+
 .top-component .csc-conditions-root .condition {
   padding: 6px;
   padding-left: 12px;
